@@ -1,35 +1,74 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Route,
+  RouterProvider,
+} from "react-router-dom";
+import MainLayout from "./Layouts/MainLayout";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+import { useContext, useEffect, useState } from "react";
+import auth from "./Appwrite/auth";
+import UserContext from "./context/UserContext";
+import AllPost from "./pages/AllPost";
+import Protected from "./components/Protected";
+import AddPost from "./pages/AddPost";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { dispatch } = useContext(UserContext);
+  const [loading, setLoading] = useState(true);
 
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+  useEffect(() => {
+    auth
+      .getCurrentUser()
+      .then((user) => {
+        if (user) dispatch({ type: "login", payload: user });
+      })
+      .finally(() => setLoading(false));
+  }, [dispatch]);
+
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <Route path="/" element={<MainLayout />}>
+        <Route path="" element={<Home />} />
+        <Route
+          path="all-posts"
+          element={
+            <Protected>
+              <AllPost />
+            </Protected>
+          }
+        />
+        <Route
+          path="add-post"
+          element={
+            <Protected>
+              <AddPost />
+            </Protected>
+          }
+        />
+        <Route
+          path="login"
+          element={
+            <Protected auth={false}>
+              <Login />
+            </Protected>
+          }
+        />
+        <Route
+          path="signup"
+          element={
+            <Protected auth={false}>
+              <SignUp />
+            </Protected>
+          }
+        />
+      </Route>
+    )
+  );
+
+  return !loading ? <RouterProvider router={router} /> : <h1>Loading...</h1>;
 }
 
-export default App
+export default App;
